@@ -22,7 +22,7 @@ export default function Page() {
             />
             <h3 className="font-bold mt-2">{tecnologia.title}</h3>
             <p className="text-sm">{tecnologia.description}</p>
-            <p className="text-yellow-500">{'⭐'.repeat(tecnologia.rating)}</p>
+            <p className="text-yellow-500">{'🌟'.repeat(tecnologia.rating)}</p>
           </div>
         ))}
       </div>
