@@ -1,0 +1,86 @@
+[
+  {
+    "title": "HTML",
+    "image": "html.svg",
+    "description": "Linguagem de marcação para estruturar páginas web.",
+    "rating": 5
+  },
+  {
+    "title": "CSS",
+    "image": "css.svg",
+    "description": "Linguagem de estilo para design e layout de páginas web.",
+    "rating": 4
+  },
+  {
+    "title": "Tailwind CSS",
+    "image": "tailwind.svg",
+    "description": "Framework CSS utilitário para desenvolvimento rápido.",
+    "rating": 5
+  },
+  {
+    "title": "JavaScript",
+    "image": "javascript.svg",
+    "description": "Linguagem de programação para interatividade na web.",
+    "rating": 5
+  },
+  {
+    "title": "TypeScript",
+    "image": "typescript.svg",
+    "description": "Superset do JavaScript com tipagem estática.",
+    "rating": 4
+  },
+  {
+    "title": "JSON",
+    "image": "json.svg",
+    "description": "Formato leve de intercâmbio de dados.",
+    "rating": 3
+  },
+  {
+    "title": "API RESTful",
+    "image": "api.svg",
+    "description": "Arquitetura para desenvolvimento de APIs web.",
+    "rating": 4
+  },
+  {
+    "title": "Swagger",
+    "image": "swagger.svg",
+    "description": "Ferramenta para documentação de APIs.",
+    "rating": 3
+  },
+  {
+    "title": "GitHub",
+    "image": "github.svg",
+    "description": "Plataforma de hospedagem de código com controle de versão.",
+    "rating": 5
+  },
+  {
+    "title": "Codespaces",
+    "image": "codespaces.svg",
+    "description": "Ambiente de desenvolvimento na nuvem do GitHub.",
+    "rating": 4
+  },
+  {
+    "title": "GitHub Pages",
+    "image": "github-pages.svg",
+    "description": "Serviço de hospedagem de sites estáticos do GitHub.",
+    "rating": 4
+  },
+  {
+    "title": "React.js",
+    "image": "react.svg",
+    "description": "Biblioteca JavaScript para construção de interfaces.",
+    "rating": 5
+  },
+  {
+    "title": "Next.js",
+    "image": "nextjs.svg",
+    "description": "Framework React para aplicações web modernas.",
+    "rating": 5
+  },
+  {
+    "title": "Vercel",
+    "image": "vercel.svg",
+    "description": "Plataforma de deploy para aplicações web.",
+    "rating": 4
+  }
+]
