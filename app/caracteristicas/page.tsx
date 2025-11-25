@@ -1,3 +1,5 @@
+import { Caracteristica } from '@/components/Caracteristica';
+
 export default function Page() {
   const caracteristicas = [
     'JSX, sintaxe que mistura HTML e JS.',
@@ -8,16 +10,21 @@ export default function Page() {
     'Renderização Rápida e SEO Friendly.',
     'TypeScript Seguro e Escalável.',
     'Comunidade Ativa e Popularidade.'
-  ]
+  ];
 
   return (
     <>
       <h2>Características do React e Next.js</h2>
       <ul>
-        {caracteristicas.map((caracteristica, i) => {
-          return <li key={i}>{caracteristica}</li>
+        {caracteristicas.map((caracteristica) => {
+          return (
+            <Caracteristica
+              key={caracteristica}
+              caracteristica={caracteristica}
+            />
+          );
         })}
       </ul>
     </>
-  )
+  );
 }
