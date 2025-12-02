@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import React from 'react';
+import ContadorPersonalizado from './ContadorPersonalizado';
 
 interface TecnologiaDetailsCardProps {
   title: string;
@@ -42,6 +43,9 @@ export const TecnologiaDetailsCard: React.FC<TecnologiaDetailsCardProps> = ({
         <p className="text-gray-700 text-center leading-relaxed text-lg">
           {description}
         </p>
+        <div className="mt-4">
+          <ContadorPersonalizado title={title} />
+        </div>
       </div>
     </article>
   );

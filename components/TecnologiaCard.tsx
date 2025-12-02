@@ -1,4 +1,5 @@
 import React from "react";
+import ContadorPersonalizado from './ContadorPersonalizado';
 
 interface TecnologiaCardProps {
   title: string;
@@ -19,6 +20,9 @@ export const TecnologiaCard: React.FC<TecnologiaCardProps> = ({ title, image }) 
       <h3 className="mt-3 text-center text-sm font-semibold text-white">
         {title}
       </h3>
+      <div className="w-full flex justify-center">
+        <ContadorPersonalizado title={title} />
+      </div>
     </div>
   );
 };
