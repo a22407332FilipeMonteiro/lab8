@@ -1,0 +1,1979 @@
+//Cria uma nova página que mostre todos os produtos de uma categoria específica usando rotas dinâmicas
+// app/categoria/[slug]/page.tsx
+'use client';
+
+import { useParams } from 'next/navigation';
+import useSWR from 'swr';
+import Link from 'next/link';
+import Image from 'next/image';
+
+interface Product {
+  id: number;
+  title: string;
+  category: string;
+  price: number;
+  image: string;
+  description: string;
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function CategoriaPage() {
+  const params = useParams();
+  const categoria = params.slug as string;
+  
+  // Buscar todos os produtos
+  const { data: produtos, error, isLoading } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // Filtrar produtos da categoria
+  const produtosDaCategoria = produtos?.filter(
+    p => p.category.toLowerCase() === categoria.toLowerCase()
+  );
+
+  if (isLoading) return <div className="p-8">A carregar produtos...</div>;
+  if (error) return <div className="p-8">Erro ao carregar produtos</div>;
+
+  return (
+    <div className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-6">
+        Categoria: {categoria}
+      </h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {produtosDaCategoria?.map(produto => (
+          <Link 
+            key={produto.id} 
+            href={`/produto/${produto.id}`}
+            className="border rounded-lg p-4 hover:shadow-lg"
+          >
+            <Image 
+              src={produto.image} 
+              alt={produto.title}
+              width={200}
+              height={200}
+              className="w-full h-48 object-contain"
+            />
+            <h2 className="font-bold mt-2">{produto.title}</h2>
+            <p className="text-green-600">{produto.price}€</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+/////
+
+
+
+
+
+//Adiciona um filtro de preço mínimo e máximo à página principal usando useState
+// Adicionar ao teu componente principal
+'use client';
+
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+
+export default function ProdutosComFiltro() {
+  // A. STATE MANAGEMENT
+  const [precoMin, setPrecoMin] = useState<number>(0);
+  const [precoMax, setPrecoMax] = useState<number>(1000);
+  const [produtosFiltrados, setProdutosFiltrados] = useState<Product[]>([]);
+
+  // B. DATA FETCHING
+  const { data: produtos } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // C. EFFECTS - Filtrar quando preços ou produtos mudarem
+  useEffect(() => {
+    if (!produtos) return;
+
+    const filtrados = produtos.filter(produto => 
+      produto.price >= precoMin && produto.price <= precoMax
+    );
+    
+    setProdutosFiltrados(filtrados);
+    console.log(`Filtrados ${filtrados.length} produtos entre ${precoMin}€ e ${precoMax}€`);
+  }, [precoMin, precoMax, produtos]);
+
+  // D. RENDER
+  return (
+    <div className="p-8">
+      {/* Filtros */}
+      <div className="mb-6 flex gap-4">
+        <div>
+          <label className="block mb-2">Preço Mínimo: {precoMin}€</label>
+          <input
+            type="range"
+            min="0"
+            max="1000"
+            value={precoMin}
+            onChange={(e) => setPrecoMin(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+        
+        <div>
+          <label className="block mb-2">Preço Máximo: {precoMax}€</label>
+          <input
+            type="range"
+            min="0"
+            max="1000"
+            value={precoMax}
+            onChange={(e) => setPrecoMax(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+      </div>
+
+      <p className="mb-4">
+        A mostrar {produtosFiltrados.length} produtos
+      </p>
+
+      {/* Grid de produtos filtrados */}
+      <div className="grid grid-cols-3 gap-4">
+        {produtosFiltrados.map(produto => (
+          <div key={produto.id} className="border p-4">
+            <h3>{produto.title}</h3>
+            <p className="text-green-600 font-bold">{produto.price}€</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+/////
+
+
+
+//guardar ultimas 5 pesquisas
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function BarraPesquisaComHistorico() {
+  const [pesquisa, setPesquisa] = useState('');
+  const [historico, setHistorico] = useState<string[]>([]);
+
+  // A. CARREGAR HISTÓRICO AO MONTAR
+  useEffect(() => {
+    const historicoGuardado = localStorage.getItem('historicoPesquisas');
+    if (historicoGuardado) {
+      setHistorico(JSON.parse(historicoGuardado));
+    }
+  }, []); // Array vazio = só executa uma vez ao montar
+
+  // B. GUARDAR HISTÓRICO QUANDO MUDA
+  useEffect(() => {
+    if (historico.length > 0) {
+      localStorage.setItem('historicoPesquisas', JSON.stringify(historico));
+    }
+  }, [historico]); // Executa sempre que historico muda
+
+  const handlePesquisa = (termo: string) => {
+    if (!termo.trim()) return;
+
+    // Adicionar ao histórico (máximo 5)
+    setHistorico(prev => {
+      const novo = [termo, ...prev.filter(h => h !== termo)];
+      return novo.slice(0, 5); // Manter só os últimos 5
+    });
+
+    setPesquisa(termo);
+  };
+
+  return (
+    <div className="p-4">
+      <input
+        type="text"
+        value={pesquisa}
+        onChange={(e) => setPesquisa(e.target.value)}
+        onKeyPress={(e) => {
+          if (e.key === 'Enter') handlePesquisa(pesquisa);
+        }}
+        placeholder="Pesquisar produtos..."
+        className="w-full p-2 border rounded"
+      />
+
+      {/* Histórico */}
+      {historico.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm text-gray-600 mb-2">Pesquisas recentes:</p>
+          <div className="flex gap-2 flex-wrap">
+            {historico.map((termo, index) => (
+              <button
+                key={index}
+                onClick={() => handlePesquisa(termo)}
+                className="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-gray-200"
+              >
+                {termo}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+////
+
+
+Cria uma página que mostre estatísticas dos produtos usando useSWR
+
+// app/estatisticas/page.tsx
+'use client';
+
+import useSWR from 'swr';
+
+interface Product {
+  id: number;
+  title: string;
+  category: string;
+  price: number;
+  rating: { rate: number; count: number };
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function EstatisticasPage() {
+  const { data: produtos, error, isLoading } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  if (isLoading) return <div className="p-8">A carregar...</div>;
+  if (error) return <div className="p-8">Erro ao carregar</div>;
+  if (!produtos) return null;
+
+  // CALCULAR ESTATÍSTICAS
+  const totalProdutos = produtos.length;
+  
+  const precoMedio = produtos.reduce((acc, p) => acc + p.price, 0) / totalProdutos;
+  
+  const categorias = [...new Set(produtos.map(p => p.category))];
+  
+  const produtoMaisCaro = produtos.reduce((max, p) => 
+    p.price > max.price ? p : max
+  );
+  
+  const produtoMaisBarato = produtos.reduce((min, p) => 
+    p.price < min.price ? p : min
+  );
+
+  const produtosPorCategoria = categorias.map(cat => ({
+    categoria: cat,
+    quantidade: produtos.filter(p => p.category === cat).length
+  }));
+
+  return (
+    <div className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">📊 Estatísticas da Loja</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Card 1 */}
+        <div className="bg-blue-50 p-6 rounded-lg">
+          <h2 className="text-gray-600 mb-2">Total de Produtos</h2>
+          <p className="text-4xl font-bold text-blue-600">{totalProdutos}</p>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-green-50 p-6 rounded-lg">
+          <h2 className="text-gray-600 mb-2">Preço Médio</h2>
+          <p className="text-4xl font-bold text-green-600">
+            {precoMedio.toFixed(2)}€
+          </p>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-purple-50 p-6 rounded-lg">
+          <h2 className="text-gray-600 mb-2">Categorias</h2>
+          <p className="text-4xl font-bold text-purple-600">
+            {categorias.length}
+          </p>
+        </div>
+      </div>
+
+      {/* Produtos por Categoria */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Produtos por Categoria</h2>
+        <div className="space-y-3">
+          {produtosPorCategoria.map(({ categoria, quantidade }) => (
+            <div key={categoria} className="bg-white p-4 rounded shadow">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">{categoria}</span>
+                <span className="bg-blue-100 px-3 py-1 rounded-full">
+                  {quantidade} produtos
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Extremos de Preço */}
+      <div className="mt-8 grid md:grid-cols-2 gap-6">
+        <div className="border-2 border-red-200 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-3">💰 Mais Caro</h2>
+          <p className="font-semibold">{produtoMaisCaro.title}</p>
+          <p className="text-2xl text-red-600 font-bold mt-2">
+            {produtoMaisCaro.price}€
+          </p>
+        </div>
+
+        <div className="border-2 border-green-200 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-3">🎯 Mais Barato</h2>
+          <p className="font-semibold">{produtoMaisBarato.title}</p>
+          <p className="text-2xl text-green-600 font-bold mt-2">
+            {produtoMaisBarato.price}€
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+/////
+
+
+
+'use client';
+
+import { useState } from 'react';
+
+export default function ProdutoComContador() {
+  // STATE: Guarda o número de cliques
+  const [visualizacoes, setVisualizacoes] = useState(0);
+
+  const handleClick = () => {
+    setVisualizacoes(visualizacoes + 1);
+    // OU: setVisualizacoes(prev => prev + 1);
+  };
+
+  return (
+    <div className="border p-4 rounded">
+      <h2 className="font-bold">Produto Exemplo</h2>
+      <p className="text-sm text-gray-600">
+        Visualizações: {visualizacoes}
+      </p>
+      
+      <button 
+        onClick={handleClick}
+        className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Ver Detalhes
+      </button>
+    </div>
+  );
+}
+
+
+
+
+
+/////
+
+
+
+
+'use client';
+
+import { useState } from 'react';
+
+export default function ProdutoComDescricao() {
+  const [mostrarDescricao, setMostrarDescricao] = useState(false);
+
+  return (
+    <div className="border p-4">
+      <h2 className="font-bold">Nome do Produto</h2>
+      <p className="text-green-600">99.99€</p>
+      
+      <button 
+        onClick={() => setMostrarDescricao(!mostrarDescricao)}
+        className="text-blue-500 underline mt-2"
+      >
+        {mostrarDescricao ? 'Esconder' : 'Ver'} Descrição
+      </button>
+
+      {mostrarDescricao && (
+        <p className="mt-2 text-gray-700">
+          Esta é a descrição completa do produto...
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+
+
+/////
+
+
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function ProdutoFavorito({ produtoId }: { produtoId: number }) {
+  const [isFavorito, setIsFavorito] = useState(false);
+
+  // CARREGAR do localStorage quando monta
+  useEffect(() => {
+    const favoritos = localStorage.getItem('favoritos');
+    if (favoritos) {
+      const listaFavoritos = JSON.parse(favoritos);
+      setIsFavorito(listaFavoritos.includes(produtoId));
+    }
+  }, []); // Só executa uma vez ao montar
+
+  // GUARDAR no localStorage quando muda
+  useEffect(() => {
+    const favoritos = localStorage.getItem('favoritos');
+    let listaFavoritos = favoritos ? JSON.parse(favoritos) : [];
+
+    if (isFavorito) {
+      // Adicionar aos favoritos
+      if (!listaFavoritos.includes(produtoId)) {
+        listaFavoritos.push(produtoId);
+      }
+    } else {
+      // Remover dos favoritos
+      listaFavoritos = listaFavoritos.filter((id: number) => id !== produtoId);
+    }
+
+    localStorage.setItem('favoritos', JSON.stringify(listaFavoritos));
+  }, [isFavorito, produtoId]); // Executa quando isFavorito ou produtoId muda
+
+  return (
+    <button
+      onClick={() => setIsFavorito(!isFavorito)}
+      className="text-2xl"
+    >
+      {isFavorito ? '❤️' : '🤍'}
+    </button>
+  );
+}
+
+
+
+//////
+
+
+
+app/produtos/[id]/page.tsx (Página Individual do Produto)
+
+'use client';
+
+import { useState } from 'react';
+
+export default function ProdutosComLikes() {
+  // Objeto que guarda likes de cada produto
+  const [likes, setLikes] = useState<{ [key: number]: number }>({
+    1: 0,
+    2: 0,
+    3: 0,
+  });
+
+  const produtos = [
+    { id: 1, nome: 'Produto 1' },
+    { id: 2, nome: 'Produto 2' },
+    { id: 3, nome: 'Produto 3' },
+  ];
+
+  const darLike = (produtoId: number) => {
+    setLikes(prev => ({
+      ...prev,
+      [produtoId]: prev[produtoId] + 1
+    }));
+  };
+
+  return (
+    <div className="p-4 space-y-3">
+      {produtos.map(produto => (
+        <div key={produto.id} className="border p-3 rounded flex justify-between items-center">
+          <span>{produto.nome}</span>
+          
+          <div className="flex items-center gap-2">
+            <span>👍 {likes[produto.id]}</span>
+            <button 
+              onClick={() => darLike(produto.id)}
+              className="bg-blue-500 text-white px-3 py-1 rounded"
+            >
+              Like
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+//////
+
+
+'use client';
+
+import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import Image from 'next/image';
+import Link from 'next/link';
+
+interface Product {
+  id: number;
+  title: string;
+  category: string;
+  price: number;
+  image: string;
+  description: string;
+  rating: {
+    rate: number;
+    count: number;
+  };
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function ProdutoPage() {
+  // ==================== A. ROUTING ====================
+  // EXEMPLO DEFESA: useParams para rotas dinâmicas [id]
+  const params = useParams();
+  const produtoId = params.id as string;
+
+  // ==================== B. STATE MANAGEMENT ====================
+  const [quantidade, setQuantidade] = useState(1);
+  
+  // EXEMPLO DEFESA: Estado para mostrar/esconder descrição
+  const [mostrarDescricao, setMostrarDescricao] = useState(false);
+  
+  // EXEMPLO DEFESA: Estado para favoritos
+  const [isFavorito, setIsFavorito] = useState(false);
+  
+  // EXEMPLO DEFESA: Contador de visualizações deste produto
+  const [views, setViews] = useState(0);
+
+  // ==================== C. DATA FETCHING ====================
+  const { data: produto, error, isLoading } = useSWR<Product>(
+    `https://deisishop.pythonanywhere.com/products/${produtoId}`,
+    fetcher
+  );
+
+  // ==================== D. EFFECTS ====================
+  
+  // EXEMPLO DEFESA: Mudar título da página com o nome do produto
+  useEffect(() => {
+    if (produto) {
+      document.title = `${produto.title} - DEISI Shop`;
+    }
+    
+    return () => {
+      document.title = 'DEISI Shop';
+    };
+  }, [produto]);
+
+  // EXEMPLO DEFESA: Carregar favoritos do localStorage
+  useEffect(() => {
+    const favoritos = localStorage.getItem('favoritos');
+    if (favoritos) {
+      const listaFavoritos = JSON.parse(favoritos);
+      setIsFavorito(listaFavoritos.includes(Number(produtoId)));
+    }
+  }, [produtoId]);
+
+  // EXEMPLO DEFESA: Guardar favoritos no localStorage
+  useEffect(() => {
+    const favoritos = localStorage.getItem('favoritos');
+    let listaFavoritos = favoritos ? JSON.parse(favoritos) : [];
+
+    if (isFavorito) {
+      if (!listaFavoritos.includes(Number(produtoId))) {
+        listaFavoritos.push(Number(produtoId));
+      }
+    } else {
+      listaFavoritos = listaFavoritos.filter((id: number) => id !== Number(produtoId));
+    }
+
+    localStorage.setItem('favoritos', JSON.stringify(listaFavoritos));
+    console.log('Favoritos atualizados:', listaFavoritos);
+  }, [isFavorito, produtoId]);
+
+  // EXEMPLO DEFESA: Incrementar views ao carregar
+  useEffect(() => {
+    setViews(prev => prev + 1);
+    console.log(`Produto ${produtoId} visualizado`);
+  }, [produtoId]);
+
+  // EXEMPLO DEFESA: Log quando quantidade muda
+  useEffect(() => {
+    console.log(`Quantidade alterada para: ${quantidade}`);
+  }, [quantidade]);
+
+  // ==================== E. HANDLERS ====================
+  
+  const aumentarQuantidade = () => {
+    setQuantidade(prev => prev + 1);
+  };
+
+  const diminuirQuantidade = () => {
+    if (quantidade > 1) {
+      setQuantidade(prev => prev - 1);
+    }
+  };
+
+  const toggleFavorito = () => {
+    setIsFavorito(!isFavorito);
+  };
+
+  const adicionarAoCarrinho = () => {
+    console.log(`Adicionado ${quantidade}x ${produto?.title} ao carrinho`);
+    // Aqui iria a lógica do carrinho
+  };
+
+  // ==================== F. RENDER ====================
+  
+  if (isLoading) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <p className="text-xl">A carregar produto...</p>
+    </div>
+  );
+  
+  if (error || !produto) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="text-center">
+        <p className="text-xl text-red-600 mb-4">Produto não encontrado!</p>
+        <Link href="/" className="text-blue-600 underline">
+          Voltar à loja
+        </Link>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="container mx-auto p-8">
+      {/* Breadcrumb */}
+      <div className="mb-6 text-sm text-gray-600">
+        <Link href="/" className="hover:text-blue-600">Home</Link>
+        {' > '}
+        <Link href={`/categoria/${produto.category}`} className="hover:text-blue-600">
+          {produto.category}
+        </Link>
+        {' > '}
+        <span>{produto.title}</span>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Coluna da Imagem */}
+        <div className="relative">
+          <Image 
+            src={produto.image} 
+            alt={produto.title}
+            width={500}
+            height={500}
+            className="w-full h-96 object-contain"
+          />
+          
+          {/* EXEMPLO DEFESA: Botão de Favorito */}
+          <button
+            onClick={toggleFavorito}
+            className="absolute top-4 right-4 text-4xl hover:scale-110 transition-transform"
+            title={isFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          >
+            {isFavorito ? '❤️' : '🤍'}
+          </button>
+
+          {/* EXEMPLO DEFESA: Mostrar views */}
+          <div className="mt-4 text-sm text-gray-600">
+            👁️ Produto visualizado {views} vez(es) nesta sessão
+          </div>
+        </div>
+
+        {/* Coluna da Informação */}
+        <div>
+          <h1 className="text-3xl font-bold mb-4">{produto.title}</h1>
+          
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-sm bg-gray-200 px-3 py-1 rounded">
+              {produto.category}
+            </span>
+            
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-500">⭐</span>
+              <span>{produto.rating.rate}</span>
+              <span className="text-gray-600 text-sm">
+                ({produto.rating.count} avaliações)
+              </span>
+            </div>
+          </div>
+
+          <p className="text-4xl font-bold text-green-600 mb-6">
+            {produto.price.toFixed(2)}€
+          </p>
+
+          {/* EXEMPLO DEFESA: Botão para mostrar/esconder descrição */}
+          <div className="mb-6">
+            <button
+              onClick={() => setMostrarDescricao(!mostrarDescricao)}
+              className="text-blue-600 underline mb-2"
+            >
+              {mostrarDescricao ? '▼ Esconder' : '▶ Ver'} Descrição
+            </button>
+            
+            {mostrarDescricao && (
+              <p className="text-gray-700 leading-relaxed">
+                {produto.description}
+              </p>
+            )}
+          </div>
+
+          {/* EXEMPLO DEFESA: Seletor de Quantidade com useState */}
+          <div className="mb-6">
+            <label className="block mb-2 font-semibold">Quantidade:</label>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={diminuirQuantidade}
+                disabled={quantidade <= 1}
+                className="bg-gray-200 px-4 py-2 rounded disabled:opacity-50"
+              >
+                -
+              </button>
+              
+              <span className="text-2xl font-bold w-12 text-center">
+                {quantidade}
+              </span>
+              
+              <button
+                onClick={aumentarQuantidade}
+                className="bg-gray-200 px-4 py-2 rounded"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Preço Total */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <p className="text-sm text-gray-600">Preço Total:</p>
+            <p className="text-3xl font-bold text-green-600">
+              {(produto.price * quantidade).toFixed(2)}€
+            </p>
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex gap-4">
+            <button
+              onClick={adicionarAoCarrinho}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700"
+            >
+              🛒 Adicionar ao Carrinho
+            </button>
+            
+            <Link
+              href="/"
+              className="border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 flex items-center"
+            >
+              ← Voltar
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+/////
+
+
+
+app/categoria/[slug]/page.tsx (NOVO - Criar esta pasta e ficheiro)
+
+'use client';
+
+import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import Link from 'next/link';
+import Image from 'next/image';
+
+interface Product {
+  id: number;
+  title: string;
+  category: string;
+  price: number;
+  image: string;
+  rating: {
+    rate: number;
+    count: number;
+  };
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function CategoriaPage() {
+  // ==================== A. ROUTING ====================
+  // EXEMPLO DEFESA: Rota dinâmica para categorias
+  const params = useParams();
+  const categoria = params.slug as string;
+
+  // ==================== B. STATE MANAGEMENT ====================
+  const [ordenacao, setOrdenacao] = useState<'preco-asc' | 'preco-desc' | 'rating'>('preco-asc');
+
+  // ==================== C. DATA FETCHING ====================
+  // EXEMPLO DEFESA: useSWR para buscar produtos
+  const { data: produtos, error, isLoading } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // ==================== D. EFFECTS ====================
+  
+  // EXEMPLO DEFESA: Mudar título baseado na categoria
+  useEffect(() => {
+    document.title = `${categoria} - DEISI Shop`;
+    
+    return () => {
+      document.title = 'DEISI Shop';
+    };
+  }, [categoria]);
+
+  // EXEMPLO DEFESA: Log quando categoria muda
+  useEffect(() => {
+    console.log(`A ver categoria: ${categoria}`);
+  }, [categoria]);
+
+  // ==================== E. COMPUTED VALUES ====================
+  
+  // Filtrar produtos da categoria
+  const produtosDaCategoria = produtos?.filter(
+    p => p.category.toLowerCase() === categoria.toLowerCase()
+  ) || [];
+
+  // Ordenar produtos baseado no estado
+  const produtosOrdenados = [...produtosDaCategoria].sort((a, b) => {
+    switch (ordenacao) {
+      case 'preco-asc':
+        return a.price - b.price;
+      case 'preco-desc':
+        return b.price - a.price;
+      case 'rating':
+        return b.rating.rate - a.rating.rate;
+      default:
+        return 0;
+    }
+  });
+
+  // ==================== F. RENDER ====================
+  
+  if (isLoading) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <p className="text-xl">A carregar categoria...</p>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <p className="text-xl text-red-600">Erro ao carregar produtos!</p>
+    </div>
+  );
+
+  return (
+    <div className="container mx-auto p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <Link href="/" className="text-blue-600 hover:underline mb-2 inline-block">
+          ← Voltar à loja
+        </Link>
+        
+        <h1 className="text-4xl font-bold capitalize">
+          {categoria}
+        </h1>
+        
+        <p className="text-gray-600 mt-2">
+          {produtosDaCategoria.length} produto(s) encontrado(s)
+        </p>
+      </div>
+
+      {/* EXEMPLO DEFESA: Selector de ordenação com useState */}
+      <div className="mb-6 flex justify-end">
+        <select
+          value={ordenacao}
+          onChange={(e) => setOrdenacao(e.target.value as any)}
+          className="p-2 border rounded"
+        >
+          <option value="preco-asc">Preço: Menor para Maior</option>
+          <option value="preco-desc">Preço: Maior para Menor</option>
+          <option value="rating">Melhor Avaliação</option>
+        </select>
+      </div>
+
+      {/* Grid de Produtos */}
+      {produtosOrdenados.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-xl text-gray-600">
+            😕 Nenhum produto encontrado nesta categoria
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {produtosOrdenados.map(produto => (
+            <Link 
+              key={produto.id} 
+              href={`/produtos/${produto.id}`}
+              className="border rounded-lg p-4 hover:shadow-xl transition-shadow"
+            >
+              <Image 
+                src={produto.image} 
+                alt={produto.title}
+                width={200}
+                height={200}
+                className="w-full h-48 object-contain mb-4"
+              />
+              
+              <h2 className="font-bold text-lg mb-2 line-clamp-2">
+                {produto.title}
+              </h2>
+              
+              <div className="flex justify-between items-center">
+                <p className="text-green-600 font-bold text-xl">
+                  {produto.price.toFixed(2)}€
+                </p>
+                
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-500">⭐</span>
+                  <span className="text-sm">{produto.rating.rate}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+
+
+
+
+///////
+
+
+
+
+
+
+app/estatisticas/page.tsx (NOVO - Criar esta pasta e ficheiro)
+'use client';
+
+import { useEffect } from 'react';
+import useSWR from 'swr';
+import Link from 'next/link';
+
+interface Product {
+  id: number;
+  title: string;
+  category: string;
+  price: number;
+  rating: {
+    rate: number;
+    count: number;
+  };
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function EstatisticasPage() {
+  // ==================== A. DATA FETCHING ====================
+  // EXEMPLO DEFESA: useSWR para buscar dados
+  const { data: produtos, error, isLoading } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // ==================== B. EFFECTS ====================
+  
+  // EXEMPLO DEFESA: Mudar título da página
+  useEffect(() => {
+    document.title = 'Estatísticas - DEISI Shop';
+    
+    return () => {
+      document.title = 'DEISI Shop';
+    };
+  }, []);
+
+  // EXEMPLO DEFESA: Log das estatísticas quando produtos carregam
+  useEffect(() => {
+    if (produtos) {
+      console.log(`Total de produtos: ${produtos.length}`);
+      console.log(`Categorias: ${[...new Set(produtos.map(p => p.category))].length}`);
+    }
+  }, [produtos]);
+
+  // ==================== C. COMPUTED VALUES ====================
+  
+  if (isLoading || !produtos) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <p className="text-xl">A carregar estatísticas...</p>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <p className="text-xl text-red-600">Erro ao carregar dados!</p>
+    </div>
+  );
+
+  // Calcular estatísticas
+  const totalProdutos = produtos.length;
+  
+  const precoMedio = produtos.reduce((acc, p) => acc + p.price, 0) / totalProdutos;
+  
+  const categorias = [...new Set(produtos.map(p => p.category))];
+  
+  const produtoMaisCaro = produtos.reduce((max, p) => 
+    p.price > max.price ? p : max
+  );
+  
+  const produtoMaisBarato = produtos.reduce((min, p) => 
+    p.price < min.price ? p : min
+  );
+
+  const melhorAvaliado = produtos.reduce((best, p) =>
+    p.rating.rate > best.rating.rate ? p : best
+  );
+
+  const produtosPorCategoria = categorias.map(cat => ({
+    categoria: cat,
+    quantidade: produtos.filter(p => p.category === cat).length,
+    precoMedio: produtos
+      .filter(p => p.category === cat)
+      .reduce((acc, p) => acc + p.price, 0) / 
+      produtos.filter(p => p.category === cat).length
+  }));
+
+  // ==================== D. RENDER ====================
+  
+  return (
+    <div className="container mx-auto p-8">
+      <div className="mb-8">
+        <Link href="/" className="text-blue-600 hover:underline mb-2 inline-block">
+          ← Voltar à loja
+        </Link>
+        <h1 className="text-4xl font-bold">📊 Estatísticas da Loja</h1>
+      </div>
+
+      {/* Cards Principais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+          <h2 className="text-gray-600 mb-2">Total de Produtos</h2>
+          <p className="text-4xl font-bold text-blue-600">{totalProdutos}</p>
+        </div>
+
+        <div className="bg-green-50 p-6 rounded-lg border-2 border-green-200">
+          <h2 className="text-gray-600 mb-2">Preço Médio</h2>
+          <p className="text-4xl font-bold text-green-600">
+            {precoMedio.toFixed(2)}€
+          </p>
+        </div>
+
+        <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
+          <h2 className="text-gray-600 mb-2">Categorias</h2>
+          <p className="text-4xl font-bold text-purple-600">
+            {categorias.length}
+          </p>
+        </div>
+      </div>
+
+      {/* Produtos por Categoria */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4">Produtos por Categoria</h2>
+        <div className="space-y-3">
+          {produtosPorCategoria.map(({ categoria, quantidade, precoMedio }) => (
+            <Link
+              key={categoria}
+              href={`/categoria/${categoria}`}
+              className="bg-white p-4 rounded shadow hover:shadow-lg transition-shadow block"
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-semibold text-lg capitalize">{categoria}</span>
+                  <p className="text-sm text-gray-600">
+                    Preço médio: {precoMedio.toFixed(2)}€
+                  </p>
+                </div>
+                <span className="bg-blue-100 px-4 py-2 rounded-full font-bold">
+                  {quantidade} produtos
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Destaques */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="border-2 border-red-200 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-3">💰 Mais Caro</h2>
+          <p className="font-semibold mb-1">{produtoMaisCaro.title}</p>
+          <p className="text-2xl text-red-600 font-bold">
+            {produtoMaisCaro.price.toFixed(2)}€
+          </p>
+          <Link 
+            href={`/produtos/${produtoMaisCaro.id}`}
+            className="text-blue-600 text-sm hover:underline mt-2 inline-block"
+          >
+            Ver produto →
+          </Link>
+        </div>
+
+        <div className="border-2 border-green-200 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-3">🎯 Mais Barato</h2>
+          <p className="font-semibold mb-1">{produtoMaisBarato.title}</p>
+          <p className="text-2xl text-green-600 font-bold">
+            {produtoMaisBarato.price.toFixed(2)}€
+          </p>
+          <Link 
+            href={`/produtos/${produtoMaisBarato.id}`}
+            className="text-blue-600 text-sm hover:underline mt-2 inline-block"
+          >
+            Ver produto →
+          </Link>
+        </div>
+
+        <div className="border-2 border-yellow-200 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-3">⭐ Melhor Avaliado</h2>
+          <p className="font-semibold mb-1">{melhorAvaliado.title}</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl text-yellow-500">⭐</span>
+            <span className="text-2xl font-bold">{melhorAvaliado.rating.rate}</span>
+          </div>
+          <Link 
+            href={`/produtos/${melhorAvaliado.id}`}
+            className="text-blue-600 text-sm hover:underline inline-block"
+          >
+            Ver produto →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+///////
+
+
+
+
+
+
+// app/page.tsx - Adicionar ao componente principal
+
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function Home() {
+  // ==================== EXEMPLO DEFESA: Sistema de Likes ====================
+  // Estado que guarda os likes de cada produto (chave: id do produto, valor: número de likes)
+  const [likes, setLikes] = useState<{ [key: number]: number }>({});
+
+  // CARREGAR likes do localStorage quando componente monta
+  useEffect(() => {
+    const likesGuardados = localStorage.getItem('produtoLikes');
+    if (likesGuardados) {
+      setLikes(JSON.parse(likesGuardados));
+      console.log('Likes carregados do localStorage');
+    }
+  }, []); // Array vazio = só executa uma vez
+
+  // GUARDAR likes no localStorage sempre que mudam
+  useEffect(() => {
+    if (Object.keys(likes).length > 0) {
+      localStorage.setItem('produtoLikes', JSON.stringify(likes));
+      console.log('Likes guardados:', likes);
+    }
+  }, [likes]); // Executa quando likes muda
+
+  // Função para dar like num produto
+  const darLike = (produtoId: number) => {
+    setLikes(prev => ({
+      ...prev,
+      [produtoId]: (prev[produtoId] || 0) + 1
+    }));
+  };
+
+  // No return, adicionar aos cards dos produtos:
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {produtos?.map(produto => (
+        <div key={produto.id} className="border p-4">
+          {/* ... resto do card ... */}
+          
+          {/* BOTÃO DE LIKE */}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault(); // Prevenir navegação do Link
+                darLike(produto.id);
+              }}
+              className="bg-red-50 hover:bg-red-100 px-3 py-1 rounded-full flex items-center gap-1"
+            >
+              ❤️ {likes[produto.id] || 0}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+
+
+
+
+////////
+
+
+
+
+
+
+Cria uma secção que mostre os últimos 5 produtos que o utilizador visitou
+
+// app/produtos/[id]/page.tsx - Adicionar ao componente do produto
+
+'use client';
+
+import { useEffect } from 'react';
+
+export default function ProdutoDetalhes() {
+  const params = useParams();
+  const produtoId = params.id;
+
+  // ==================== EXEMPLO DEFESA: Histórico de Visualizações ====================
+  
+  // Adicionar produto ao histórico quando página carrega
+  useEffect(() => {
+    // Buscar histórico existente
+    const historicoStr = localStorage.getItem('historicoVisitas');
+    let historico: number[] = historicoStr ? JSON.parse(historicoStr) : [];
+
+    // Remover produto se já existe (para colocar no início)
+    historico = historico.filter(id => id !== Number(produtoId));
+
+    // Adicionar no início
+    historico.unshift(Number(produtoId));
+
+    // Manter apenas os últimos 5
+    historico = historico.slice(0, 5);
+
+    // Guardar de volta
+    localStorage.setItem('historicoVisitas', JSON.stringify(historico));
+    
+    console.log('Histórico atualizado:', historico);
+  }, [produtoId]); // Executa quando produtoId muda
+
+  return (
+    // ... resto do componente
+  );
+}
+
+
+
+/////////
+
+
+
+
+Componente para mostrar o histórico:
+
+// components/HistoricoVisitas.tsx - CRIAR ESTE FICHEIRO NOVO
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import Link from 'next/link';
+import Image from 'next/image';
+
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  image: string;
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function HistoricoVisitas() {
+  // ==================== A. STATE ====================
+  const [historicoIds, setHistoricoIds] = useState<number[]>([]);
+
+  // ==================== B. DATA FETCHING ====================
+  const { data: todosProdutos } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // ==================== C. EFFECTS ====================
+  
+  // Carregar histórico do localStorage
+  useEffect(() => {
+    const historico = localStorage.getItem('historicoVisitas');
+    if (historico) {
+      setHistoricoIds(JSON.parse(historico));
+    }
+  }, []);
+
+  // ==================== D. COMPUTED VALUES ====================
+  
+  // Filtrar produtos que estão no histórico
+  const produtosHistorico = todosProdutos?.filter(p => 
+    historicoIds.includes(p.id)
+  );
+
+  // Ordenar pela ordem do histórico
+  const produtosOrdenados = historicoIds
+    .map(id => produtosHistorico?.find(p => p.id === id))
+    .filter(p => p !== undefined) as Product[];
+
+  // ==================== E. RENDER ====================
+  
+  if (!produtosOrdenados || produtosOrdenados.length === 0) {
+    return null; // Não mostrar nada se não houver histórico
+  }
+
+  return (
+    <div className="my-8 bg-gray-50 p-6 rounded-lg">
+      <h2 className="text-2xl font-bold mb-4">👁️ Vistos Recentemente</h2>
+      
+      <div className="grid grid-cols-5 gap-4">
+        {produtosOrdenados.map(produto => (
+          <Link
+            key={produto.id}
+            href={`/produtos/${produto.id}`}
+            className="border bg-white rounded p-2 hover:shadow-lg transition-shadow"
+          >
+            <Image
+              src={produto.image}
+              alt={produto.title}
+              width={100}
+              height={100}
+              className="w-full h-24 object-contain"
+            />
+            <p className="text-xs mt-2 line-clamp-2">{produto.title}</p>
+            <p className="text-green-600 font-bold text-sm">{produto.price}€</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+// app/page.tsx
+import HistoricoVisitas from '@/components/HistoricoVisitas';
+
+export default function Home() {
+  return (
+    <div>
+      {/* ... resto do código ... */}
+      
+      {/* ADICIONAR HISTÓRICO */}
+      <HistoricoVisitas />
+      
+      {/* Grid de produtos */}
+    </div>
+  );
+}
+
+
+
+
+
+
+///////
+
+
+
+
+
+// components/Comparador.tsx - CRIAR ESTE FICHEIRO NOVO
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import Image from 'next/image';
+import Link from 'next/link';
+
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  image: string;
+  category: string;
+  rating: {
+    rate: number;
+    count: number;
+  };
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function Comparador() {
+  // ==================== A. STATE ====================
+  const [produtosParaComparar, setProdutosParaComparar] = useState<number[]>([]);
+  const [mostrarComparador, setMostrarComparador] = useState(false);
+
+  // ==================== B. DATA FETCHING ====================
+  const { data: todosProdutos } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // ==================== C. EFFECTS ====================
+  
+  // Carregar produtos para comparar do localStorage
+  useEffect(() => {
+    const comparacao = localStorage.getItem('produtosComparacao');
+    if (comparacao) {
+      setProdutosParaComparar(JSON.parse(comparacao));
+    }
+  }, []);
+
+  // Guardar no localStorage quando muda
+  useEffect(() => {
+    localStorage.setItem('produtosComparacao', JSON.stringify(produtosParaComparar));
+    console.log('Produtos para comparar:', produtosParaComparar);
+  }, [produtosParaComparar]);
+
+  // ==================== D. HANDLERS ====================
+  
+  const adicionarParaComparar = (produtoId: number) => {
+    if (produtosParaComparar.includes(produtoId)) {
+      // Remover se já existe
+      setProdutosParaComparar(prev => prev.filter(id => id !== produtoId));
+    } else if (produtosParaComparar.length < 3) {
+      // Adicionar se houver espaço
+      setProdutosParaComparar(prev => [...prev, produtoId]);
+    } else {
+      alert('Máximo de 3 produtos para comparar!');
+    }
+  };
+
+  const limparComparacao = () => {
+    setProdutosParaComparar([]);
+    setMostrarComparador(false);
+  };
+
+  // ==================== E. COMPUTED VALUES ====================
+  
+  const produtosComparacao = todosProdutos?.filter(p => 
+    produtosParaComparar.includes(p.id)
+  );
+
+  // ==================== F. RENDER ====================
+  
+  return (
+    <>
+      {/* Botão Flutuante */}
+      {produtosParaComparar.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <button
+            onClick={() => setMostrarComparador(!mostrarComparador)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <span>⚖️</span>
+            <span>Comparar ({produtosParaComparar.length})</span>
+          </button>
+        </div>
+      )}
+
+      {/* Modal de Comparação */}
+      {mostrarComparador && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold">⚖️ Comparação de Produtos</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={limparComparacao}
+                  className="text-red-600 hover:underline"
+                >
+                  Limpar Tudo
+                </button>
+                <button
+                  onClick={() => setMostrarComparador(false)}
+                  className="text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {produtosComparacao && produtosComparacao.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {produtosComparacao.map(produto => (
+                  <div key={produto.id} className="border rounded-lg p-4">
+                    <Image
+                      src={produto.image}
+                      alt={produto.title}
+                      width={200}
+                      height={200}
+                      className="w-full h-48 object-contain mb-4"
+                    />
+                    
+                    <h3 className="font-bold mb-2 line-clamp-2">{produto.title}</h3>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Preço:</span>
+                        <span className="font-bold text-green-600">{produto.price}€</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Categoria:</span>
+                        <span className="font-semibold">{produto.category}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Avaliação:</span>
+                        <span className="font-semibold">
+                          ⭐ {produto.rating.rate} ({produto.rating.count})
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                      <Link
+                        href={`/produtos/${produto.id}`}
+                        className="flex-1 bg-blue-600 text-white py-2 rounded text-center"
+                      >
+                        Ver Detalhes
+                      </Link>
+                      
+                      <button
+                        onClick={() => adicionarParaComparar(produto.id)}
+                        className="bg-red-100 text-red-600 px-3 py-2 rounded"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-600">Nenhum produto selecionado</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+
+
+// No card de cada produto, adicionar:
+<button
+  onClick={(e) => {
+    e.preventDefault();
+    // Função que chamas do componente Comparador
+  }}
+  className="text-sm text-blue-600 hover:underline"
+>
+  ⚖️ Comparar
+</button>
+
+
+
+
+
+
+////////
+
+
+
+
+
+// Adicionar ao app/page.tsx
+
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function Home() {
+  // ==================== A. STATE ====================
+  // Estado para categorias selecionadas (array de strings)
+  const [categoriasSelecionadas, setCategoriasSelecionadas] = useState<string[]>([]);
+  
+  // ==================== B. DATA FETCHING ====================
+  const { data: produtos } = useSWR<Product[]>(
+    'https://deisishop.pythonanywhere.com/products/',
+    fetcher
+  );
+
+  // ==================== C. EFFECTS ====================
+  
+  // Log quando categorias mudam
+  useEffect(() => {
+    console.log('Categorias selecionadas:', categoriasSelecionadas);
+  }, [categoriasSelecionadas]);
+
+  // ==================== D. COMPUTED VALUES ====================
+  
+  // Extrair todas as categorias únicas
+  const todasCategorias = produtos 
+    ? [...new Set(produtos.map(p => p.category))]
+    : [];
+
+  // Filtrar produtos baseado nas categorias selecionadas
+  const produtosFiltrados = produtos?.filter(produto => {
+    // Se nenhuma categoria selecionada, mostrar todos
+    if (categoriasSelecionadas.length === 0) return true;
+    
+    // Mostrar se categoria está selecionada
+    return categoriasSelecionadas.includes(produto.category);
+  }) || [];
+
+  // ==================== E. HANDLERS ====================
+  
+  const toggleCategoria = (categoria: string) => {
+    setCategoriasSelecionadas(prev => {
+      if (prev.includes(categoria)) {
+        // Remover se já existe
+        return prev.filter(c => c !== categoria);
+      } else {
+        // Adicionar se não existe
+        return [...prev, categoria];
+      }
+    });
+  };
+
+  const limparFiltros = () => {
+    setCategoriasSelecionadas([]);
+  };
+
+  // ==================== F. RENDER ====================
+  
+  return (
+    <div className="container mx-auto p-8">
+      <h1 className="text-4xl font-bold mb-8">DEISI Shop</h1>
+
+      {/* FILTRO DE CATEGORIAS */}
+      <div className="mb-8 bg-gray-50 p-6 rounded-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">🏷️ Filtrar por Categorias</h2>
+          
+          {categoriasSelecionadas.length > 0 && (
+            <button
+              onClick={limparFiltros}
+              className="text-red-600 hover:underline text-sm"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {todasCategorias.map(categoria => {
+            const isSelected = categoriasSelecionadas.includes(categoria);
+            
+            return (
+              <button
+                key={categoria}
+                onClick={() => toggleCategoria(categoria)}
+                className={`px-4 py-2 rounded-full font-semibold transition-colors ${
+                  isSelected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border-2 border-gray-300 hover:border-blue-600'
+                }`}
+              >
+                {isSelected && '✓ '}
+                {categoria}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Contador de produtos filtrados */}
+        <p className="mt-4 text-sm text-gray-600">
+          {categoriasSelecionadas.length > 0 ? (
+            <>
+              A mostrar <strong>{produtosFiltrados.length}</strong> produtos de{' '}
+              <strong>{categoriasSelecionadas.length}</strong> categoria(s)
+            </>
+          ) : (
+            <>A mostrar todos os <strong>{produtos?.length}</strong> produtos</>
+          )}
+        </p>
+      </div>
+
+      {/* Grid de Produtos */}
+      <div className="grid grid-cols-3 gap-6">
+        {produtosFiltrados.map(produto => (
+          <div key={produto.id} className="border rounded-lg p-4">
+            {/* ... card do produto ... */}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+// app/perfil/page.tsx - CRIAR ESTE FICHEIRO NOVO
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+interface CompraHistorico {
+  data: string;
+  produtos: number[];
+  total: number;
+}
+
+
+
+
+//////
+
+
+Cria uma página de perfil que mostre as estatísticas de compra do utilizador
+
+export default function PerfilPage() {
+  // ==================== A. STATE ====================
+  const [nomeUtilizador, setNomeUtilizador] = useState('');
+  const [isEstudante, setIsEstudante] = useState(false);
+  const [totalGasto, setTotalGasto] = useState(0);
+  const [numeroCompras, setNumeroCompras] = useState(0);
+  const [produtosFavoritos, setProdutosFavoritos] = useState<number[]>([]);
+
+  // ==================== B. EFFECTS ====================
+  
+  // Carregar dados do localStorage quando componente monta
+  useEffect(() => {
+    // Carregar nome
+    const nome = localStorage.getItem('userName') || 'Visitante';
+    setNomeUtilizador(nome);
+
+    // Carregar status de estudante
+    const estudante = localStorage.getItem('isStudent') === 'true';
+    setIsEstudante(estudante);
+
+    // Carregar favoritos
+    const favs = localStorage.getItem('favoritos');
+    if (favs) {
+      setProdutosFavoritos(JSON.parse(favs));
+    }
+
+    // Calcular estatísticas de compras
+    const historico = localStorage.getItem('comprasHistorico');
+    if (historico) {
+      const compras: CompraHistorico[] = JSON.parse(historico);
+      setNumeroCompras(compras.length);
+      
+      const total = compras.reduce((acc, compra) => acc + compra.total, 0);
+      setTotalGasto(total);
+    }
+
+    console.log('Perfil carregado');
+  }, []); // Só executa uma vez ao montar
+
+  // Mudar título da página
+  useEffect(() => {
+    document.title = `Perfil de ${nomeUtilizador} - DEISI Shop`;
+    
+    return () => {
+      document.title = 'DEISI Shop';
+    };
+  }, [nomeUtilizador]);
+
+  // ==================== C. HANDLERS ====================
+  
+  const handleSalvarNome = () => {
+    localStorage.setItem('userName', nomeUtilizador);
+    alert('Nome guardado!');
+  };
+
+  const handleToggleEstudante = () => {
+    const novoStatus = !isEstudante;
+    setIsEstudante(novoStatus);
+    localStorage.setItem('isStudent', novoStatus.toString());
+    console.log('Status de estudante:', novoStatus);
+  };
+
+  const limparDados = () => {
+    if (confirm('Tens a certeza que queres limpar todos os dados?')) {
+      localStorage.clear();
+      setNomeUtilizador('Visitante');
+      setIsEstudante(false);
+      setTotalGasto(0);
+      setNumeroCompras(0);
+      setProdutosFavoritos([]);
+      alert('Dados limpos!');
+    }
+  };
+
+  // ==================== D. COMPUTED VALUES ====================
+  
+  const mediaGasto = numeroCompras > 0 ? totalGasto / numeroCompras : 0;
+
+  // ==================== E. RENDER ====================
+  
+  return (
+    <div className="container mx-auto p-8">
+      <Link href="/" className="text-blue-600 hover:underline mb-4 inline-block">
+        ← Voltar à loja
+      </Link>
+
+      <h1 className="text-4xl font-bold mb-8">👤 O Meu Perfil</h1>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Card de Informações Pessoais */}
+        <div className="bg-white border-2 rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-6">Informações Pessoais</h2>
+          
+          <div className="space-y-4">
+            {/* Nome */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Nome:</label>
+              <input
+                type="text"
+                value={nomeUtilizador}
+                onChange={(e) => setNomeUtilizador(e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+
+            {/* Estudante */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="estudante"
+                checked={isEstudante}
+                onChange={handleToggleEstudante}
+                className="w-5 h-5"
+              />
+              <label htmlFor="estudante" className="font-semibold">
+                Sou estudante (10% desconto)
+              </label>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={handleSalvarNome}
+                className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+              >
+                💾 Guardar
+              </button>
+              
+              <button
+                onClick={limparDados}
+                className="flex-1 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200"
+              >
+                🗑️ Limpar Dados
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Card de Estatísticas */}
+        <div className="bg-white border-2 rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-6">📊 Estatísticas</h2>
+          
+          <div className="space-y-6">
+            {/* Total Gasto */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Total Gasto</p>
+              <p className="text-3xl font-bold text-green-600">
+                {totalGasto.toFixed(2)}€
+              </p>
+            </div>
+
+            {/* Número de Compras */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Número de Compras</p>
+              <p className="text-3xl font-bold text-blue-600">
+                {numeroCompras}
+              </p>
+            </div>
+
+            {/* Média por Compra */}
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Média por Compra</p>
+              <p className="text-3xl font-bold text-purple-600">
+                {mediaGasto.toFixed(2)}€
+              </p>
+            </div>
+
+            {/* Produtos Favoritos */}
+            <div className="bg-red-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Produtos Favoritos</p>
+              <p className="text-3xl font-bold text-red-600">
+                ❤️ {produtosFavoritos.length}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Secção de Benefícios */}
+      {isEstudante && (
+        <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-6">
+          <h3 className="text-2xl font-bold mb-3">🎓 Benefícios de Estudante</h3>
+          <ul className="space-y-2">
+            <li className="flex items-center gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>10% de desconto em todas as compras</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>Portes grátis em compras acima de 20€</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>Acesso a promoções exclusivas</span>
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
