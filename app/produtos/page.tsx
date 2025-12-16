@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { Product } from '@/models/interfaces'
 import { ProdutoCard } from '@/components/ProdutoCard'
 import { useCarrinho } from '@/contexts/CarrinhoContext'
+import { HistoricoPesquisas } from '@/components/HistoricoPesquisas'
 
 // Interface para a resposta da API de compra
 interface RespostaCompra {
@@ -219,6 +220,7 @@ export default function ProdutosPage() {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
               🔍
             </span>
+                  
           </div>
 
           {/* Select de Ordenação */}
@@ -232,6 +234,7 @@ export default function ProdutosPage() {
             <option value="nome-desc">Nome (Z-A)</option>
             <option value="preco-asc">Preço (menor primeiro)</option>
             <option value="preco-desc">Preço (maior primeiro)</option>
+            
           </select>
 
         </div>

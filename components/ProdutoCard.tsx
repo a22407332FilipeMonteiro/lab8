@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Product } from '@/models/interfaces'
+import { parse } from 'path'
+import  ProdutoFavorito from './ProdutoFavorito'
 
 interface ProdutoCardProps {
   produto: Product
@@ -27,6 +29,8 @@ export function ProdutoCard({ produto }: ProdutoCardProps) {
   const preco = typeof produto.price === 'string' 
     ? parseFloat(produto.price) 
     : produto.price
+
+
 
 
   //
@@ -98,6 +102,8 @@ export function ProdutoCard({ produto }: ProdutoCardProps) {
         >
           + Info
         </Link>
+        <ProdutoFavorito produtoId={produto.id} />
+        
       </div>
     </div>
   )
