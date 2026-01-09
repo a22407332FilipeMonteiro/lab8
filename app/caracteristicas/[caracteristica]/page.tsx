@@ -1,13 +1,14 @@
 import Link from 'next/link';
 
 interface CaracteristicaPageProps {
-  params: {
+  params: Promise<{
     caracteristica: string;
-  };
+  }>;
 }
 
-export default function CaracteristicaPage({ params }: CaracteristicaPageProps) {
-  const caracteristica = decodeURIComponent(params.caracteristica);
+export default async function CaracteristicaPage({ params }: CaracteristicaPageProps) {
+  const { caracteristica } = await params;
+  const decodedCaracteristica = decodeURIComponent(caracteristica);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
@@ -17,7 +18,7 @@ export default function CaracteristicaPage({ params }: CaracteristicaPageProps) 
         </h1>
 
         <p className="text-lg text-gray-800 text-center">
-          {caracteristica}
+          {decodedCaracteristica}
         </p>
 
         <Link
