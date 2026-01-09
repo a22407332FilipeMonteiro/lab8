@@ -5,7 +5,6 @@ import useSWR from 'swr'
 import { Product } from '@/models/interfaces'
 import { ProdutoCard } from '@/components/ProdutoCard'
 import { useCarrinho } from '@/contexts/CarrinhoContext'
-import { HistoricoPesquisas } from '@/components/HistoricoPesquisas'
 
 // Interface para a resposta da API de compra
 interface RespostaCompra {
