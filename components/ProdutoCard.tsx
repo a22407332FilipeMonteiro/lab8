@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Product } from '@/models/interfaces'
 import { parse } from 'path'
-import  ProdutoFavorito from './ProdutoFavorito'
+//import  ProdutoFavorito from './ProdutoFavorito'
 
 interface ProdutoCardProps {
   produto: Product
@@ -10,17 +10,8 @@ interface ProdutoCardProps {
 
 export function ProdutoCard({ produto }: ProdutoCardProps) {
 
-  //
-  // A. Gestão de Estados
-  // (nenhum estado local necessário)
-
-
-  //
-  // B. Fetch de Dados
-  // (dados recebidos via props)
-
-
-  //
+  
+  
   // C. Transformação/processamento de Dados
   const imagemAbsoluta = produto.image.startsWith('http')
     ? produto.image
@@ -29,23 +20,6 @@ export function ProdutoCard({ produto }: ProdutoCardProps) {
   const preco = typeof produto.price === 'string' 
     ? parseFloat(produto.price) 
     : produto.price
-
-
-
-
-  //
-  // D. Funções utilitárias
-  // (nenhuma função necessária)
-
-
-  //
-  // E. Handlers (interação do utilizador)
-  // (handlers geridos pelo componente pai)
-
-
-  //
-  // F. Efeitos
-  // (nenhum efeito necessário)
 
 
   //
@@ -102,7 +76,7 @@ export function ProdutoCard({ produto }: ProdutoCardProps) {
         >
           + Info
         </Link>
-        <ProdutoFavorito produtoId={produto.id} />
+        {/*<ProdutoFavorito produtoId={produto.id} />*/}
         
       </div>
     </div>
