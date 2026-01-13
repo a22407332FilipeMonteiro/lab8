@@ -1,3 +1,5 @@
+"use client" 
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { Product } from '@/models/interfaces'
@@ -21,6 +23,9 @@ export function ProdutoCard({ produto }: ProdutoCardProps) {
     ? parseFloat(produto.price) 
     : produto.price
 
+
+  
+    
 
   //
   // G. Renderização
@@ -72,6 +77,7 @@ export function ProdutoCard({ produto }: ProdutoCardProps) {
         {/* Botão +Info */}
         <Link
           href={`/produtos/${produto.id}`}
+          //onClick={guardarRecente}
           className="mt-4 block text-center bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition font-medium"
         >
           + Info

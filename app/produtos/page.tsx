@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { Product } from '@/models/interfaces'
 import { ProdutoCard } from '@/components/ProdutoCard'
 import { useCarrinho } from '@/contexts/CarrinhoContext'
+// import Recentes from '@/components/ProdutoRecentes' 
 
 // Interface para a resposta da API de compra
 interface RespostaCompra {
@@ -27,6 +28,8 @@ export default function ProdutosPage() {
   const [nome, setNome] = useState('')
   const [respostaCompra, setRespostaCompra] = useState<RespostaCompra | null>(null)
   const [comprando, setComprando] = useState(false)
+  //const [historico, setHistorico] = useState<string[]>([])
+
 
 
   //
@@ -40,6 +43,16 @@ export default function ProdutosPage() {
 
   //
   // C. Efeitos
+/*useEffect(() => {
+  const salvo = localStorage.getItem("historicoPesquisas")
+  if (salvo) setHistorico(JSON.parse(salvo))
+}, [])
+
+useEffect(() => {
+  localStorage.setItem("historicoPesquisas", JSON.stringify(historico))
+}, [historico])*/
+
+
   useEffect(() => {
     if (!data) {
       setFilteredData([])
@@ -107,7 +120,7 @@ export default function ProdutosPage() {
   // Total final
   const totalFinal = totalAposEstudante - descontoCupao
 
-
+  
   //
   // E. Funções utilitárias
   function toggleItemEmCarrinho(id: number) {
@@ -118,12 +131,28 @@ export default function ProdutosPage() {
     }
   }
 
+  
+/*function guardarNoHistorico(termo: string) {
+  const t = termo.trim()
+  if (!t) return
+  setHistorico((prev) => [t, ...prev.filter((h) => h !== t)].slice(0, 5))
+}*/
+
+
 
   //
   // F. Handlers (interação do utilizador)
+
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setSearch(e.target.value)
   }
+
+  /*function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      guardarNoHistorico(search)
+    }
+  }*/
+
 
   function handleOrdenacaoChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setOrdenacao(e.target.value)
@@ -214,11 +243,30 @@ export default function ProdutosPage() {
               placeholder="Pesquisar produtos..."
               value={search}
               onChange={handleSearchChange}
+              //onKeyDown={handleSearchKeyDown}
               className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
               🔍
             </span>
+
+            {/* {historico.length > 0 && (
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {historico.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setSearch(t)}
+                    className="border px-2 py-1"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )*/}
+
+            
+
+            
                   
           </div>
 
@@ -244,6 +292,13 @@ export default function ProdutosPage() {
           </p>
         )}
       </section>
+
+      
+      {/*
+      <section className="max-w-7xl mx-auto px-4 py-4">
+        <Recentes />
+      </section>
+      */}
 
       {/* Lista de Produtos */}
       <section className="max-w-7xl mx-auto px-4 py-8">

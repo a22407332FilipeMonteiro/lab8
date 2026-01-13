@@ -1,0 +1,212 @@
+interface Utilizadores {
+    id: string;
+    name: string; 
+    email: string;
+    username: string;
+    address: string;
+  
+}
+
+export default async function PaisesPage() {
+
+  const res = await fetch(
+    "https://jsonplaceholder.typicode.com/users",
+    { cache: "no-store" }
+  );
+
+  const utilizador: Utilizadores[] = await res.json();
+
+  return (
+    <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {utilizador.map((utilizador) => (
+
+        <li key={utilizador.id} className="border p-4">
+          <p className="mt-2 text-center font-semibold">
+            {utilizador.name}
+            {` (${utilizador.username})`}
+            {` (${utilizador.email})`}
+
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+////////
+
+"use client"
+import { useState, useEffect } from "react";
+
+export default function ProdutoFavorito({ produtoId }: { produtoId: number }) {
+
+  const [isFavorito, setIsFavorito] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+
+    const favoritos = localStorage.getItem("favoritos");
+    if (!favoritos) return false;
+
+    return JSON.parse(favoritos).includes(produtoId);
+  });
+
+  useEffect(() => {
+    const favoritos = localStorage.getItem("favoritos");
+    let listaFavoritos = favoritos ? JSON.parse(favoritos) : [];
+
+    if (isFavorito) {
+      if (!listaFavoritos.includes(produtoId)) {
+        listaFavoritos.push(produtoId);
+      }
+    } else {
+      listaFavoritos = listaFavoritos.filter(
+        (id: number) => id !== produtoId
+      );
+    }
+
+    localStorage.setItem("favoritos", JSON.stringify(listaFavoritos));
+  }, [isFavorito, produtoId]);
+
+  return (
+    <button
+      onClick={() => setIsFavorito(!isFavorito)}
+      className="text-2xl"
+    >
+      {isFavorito ? "❤️" : "🤍"}
+    </button>
+  );
+}
+
+
+
+///////
+
+
+
+
+"use client"
+
+import Link from "next/link"
+import { useEffect, useState } from "react"
+
+type Recente = { id: number; title: string; href: string }
+
+export default function Recentes() {
+  const [items, setItems] = useState<Recente[]>([])
+
+  useEffect(() => {
+    const load = () =>
+      setItems(JSON.parse(localStorage.getItem("recentes") || "[]"))
+
+    load()
+    window.addEventListener("recentes:update", load)
+    return () => window.removeEventListener("recentes:update", load)
+  }, [])
+
+  if (!items.length) return null
+
+  return (
+  <section className="border p-3">
+    <h2 className="font-semibold">Vistos recentemente</h2>
+
+    <ul>
+      {items.map((x) => (
+        <li key={x.id} className="flex justify-between">
+          <span>{x.title}</span>
+
+          <Link href={x.href} className="underline">
+            +info
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </section>
+)
+}
+
+function guardarRecente() {
+    const KEY = "recentes"
+    const href = `/produtos/${produto.id}`
+
+    const raw = localStorage.getItem(KEY)
+    const list = raw ? JSON.parse(raw) : []
+
+    const item = { id: produto.id, title: produto.title, href }
+
+    const next = [item, ...list.filter((x: any) => x.id !== produto.id)].slice(0, 5)
+    localStorage.setItem(KEY, JSON.stringify(next))
+    window.dispatchEvent(new Event("recentes:update"))
+}
+
+
+
+
+////////
+
+
+
+
+"use client"
+
+import { useEffect, useState } from "react"
+
+export default function HistoricoPesquisas({
+  onSearch,
+}: {
+  onSearch: (termo: string) => void
+}) {
+  const [pesquisa, setPesquisa] = useState("")
+  const [historico, setHistorico] = useState<string[]>([])
+
+  useEffect(() => {
+    const salvo = localStorage.getItem("historicoPesquisas")
+    if (salvo) setHistorico(JSON.parse(salvo))
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("historicoPesquisas", JSON.stringify(historico))
+  }, [historico])
+
+  function handlePesquisa(termo: string) {
+    const t = termo.trim()
+    if (!t) return
+
+    setHistorico((prev) => [t, ...prev.filter((h) => h !== t)].slice(0, 5))
+    setPesquisa(t)
+    onSearch(t)
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          value={pesquisa}
+          onChange={(e) => setPesquisa(e.target.value)}
+          placeholder="Pesquisar..."
+          className="border p-2"
+        />
+        <button onClick={() => handlePesquisa(pesquisa)} className="border p-2">
+          OK
+        </button>
+      </div>
+
+      {historico.length > 0 && (
+        <div className="mt-3">
+          <p>Recentes:</p>
+          <div className="flex gap-2">
+            {historico.map((termo) => (
+              <button
+                key={termo}
+                onClick={() => handlePesquisa(termo)}
+                className="border p-2"
+              >
+                {termo}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
